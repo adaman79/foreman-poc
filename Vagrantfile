@@ -15,8 +15,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.box_url = "http://files.vagrantup.com/precise32.box"
 
   config.vm.define "dns" do |dns|
-	dns.vm.network "public_network", :bridge => 'eth0'
-	dns.vm.network "private_network", ip: "172.16.0.2"
+	dns.vm.network "public_network", :bridge => 'wlan1' #eth0
+#	dns.vm.network "private_network", ip: "172.16.0.2"
 
 	dns.vm.provision "puppet" do |puppet|
 		puppet.manifests_path = "puppet/manifests"

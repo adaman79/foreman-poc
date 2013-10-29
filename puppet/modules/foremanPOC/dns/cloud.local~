@@ -7,5 +7,5 @@ $ORIGIN cloud.local.	; start of this zone file in the namespace
                                 4W      ; Expire
                                 3H )    ; NX (TTL Negativ Cache)
 
-ns	IN	A	172.16.0.1
+ns	IN	A	172.16.0.2
 foreman	IN	CNAME	ns
