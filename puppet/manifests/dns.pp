@@ -5,8 +5,6 @@ exec { 'apt-get update':
 
 # DHCP
 
-$ddnskeyname = 'dhcp_updater'
-
 class { 'dhcp':
   dnsdomain    => [
     'cloud.local',
@@ -27,6 +25,18 @@ dhcp::pool{ 'cloud.local':
   range   => '172.16.0.16 172.16.0.255',
   gateway => '172.16.0.1',
 }
+
+
+# DHCPd
+#
+#class { 'dhcpd':
+#  configsource => 'puppet:///modules/foremanPOC/dhcpd.conf',
+#  # Restrict listening to a single interface
+#  dhcpdargs    => 'eth1',
+#  # Default is to enable but allow to be stopped (for active/passive)
+#  ensure       => 'running',
+#}
+
 
 # BIND
 
