@@ -1,0 +1,13 @@
+$ORIGIN .metal.cloud.local.
+$TTL 3H
+@	IN	SOA	@	rname.invalid. (
+	0	; serial
+	1D	; refresh
+	1H	; retry
+	1W	; expire
+	3H	; minimum
+	)
+@	NS	ns
+@	A	172.16.0.1
+ns	A	172.16.0.1
+server1	CNAME	ns

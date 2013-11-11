@@ -1,0 +1,13 @@
+$ORIGIN local.cloud.
+$TTL 3H
+@	IN	SOA	@	rname.invalid. (
+	0	; serial
+	1D	; refresh
+	1H	; retry
+	1W	; expire
+	3H	; minimum
+	)
+@	NS	ns
+@	A	172.16.0.2
+ns	A	172.16.0.2
+foreman	CNAME	ns
