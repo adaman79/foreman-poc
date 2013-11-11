@@ -10,6 +10,10 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.define "dns" do |dns|
 	dns.vm.network "public_network", :bridge => 'wlan1' #eth0
 	dns.vm.network "private_network", ip: "172.16.0.2"
+	
+	dns.vm.provider "virtualbox" do |vb|
+		vb.customize ["modifyvm", :id, "--nic3", "intnet"]
+	end
 
 	dns.vm.provision "puppet" do |puppet|
 		puppet.manifests_path = "manifests"
@@ -18,14 +22,18 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 	end
   end
 
-#  config.vm.define "client" do |client|
-#	client.vm.network "private_network", type: :dhcp
-#
-#        client.vm.provision "puppet" do |puppet|
-#                puppet.manifests_path = "manifests"
-#                puppet.manifest_file = "client.pp"
-#		puppet.module_path = "modules"
-#        end
-#  end
+  config.vm.define "client" do |client|
+	client.vm.network "private_network", type: :dhcp
+	
+	client.vm.provider "virtualbox" do |vb|
+		vb.customize ["modifyvm", :id, "--nic2", "intnet"]
+	end
+
+        client.vm.provision "puppet" do |puppet|
+                puppet.manifests_path = "manifests"
+                puppet.manifest_file = "client.pp"
+		puppet.module_path = "modules"
+        end
+  end
 
 end
