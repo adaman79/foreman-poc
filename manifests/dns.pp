@@ -1,21 +1,14 @@
-# Necessary for the subsequent installations
+# Necessary for the subsequent installations and further configuration
 exec { 'apt-get update':
 	command => '/usr/bin/apt-get update'
 }
 
-package {
-    'vim':
-        ensure => installed
-}
+
+# BIND
 
 package {
     'bind9':
         ensure => installed
-}
-
-file { "/etc/resolv.conf":
-	ensure => present,
-	source => "/vagrant/files/resolv.conf",
 }
 
 file { "/etc/bind":
@@ -44,44 +37,17 @@ service { "bind9":
 			],
 }
 
-#file { "/var/named":
-#    ensure => "directory",
-#}
-
-
-# BIND
-
-#include bind
-#bind::server::conf { '/etc/bind/named.conf':
-#  listen_on_addr    => [ 'any' ],
-#  listen_on_v6_addr => [ 'any' ],
-#  forwarders        => [ '8.8.8.8', '8.8.4.4' ],
-#  allow_query       => [ 'localnets' ],
-#  allow_recursion   => ['any' ],
-#  zones             => {
-#    'local.cloud' => [
-#      'type master',
-#      'file "local.cloud"',
-#    ],
-##    'metal.cloud.local' => [
-##      'type master',
-##      'file "metal.cloud.local"',
-##    ],
-#  },
-#}
-
-#bind::server::file { 
-#  [
-#    'local.cloud', 
-##    'metal.cloud.local'
-#  ]:
-#  source_base => '/vagrant/files/',
-#}
-
-
 # DHCP
 
-#$ddnskeyname = 'dhcp_updater'
+
+file { "/etc/bind/keys.d":
+	ensure => directory,
+}
+file { "/etc/bind/keys.d/dhcp_updater":
+	ensure => present,
+	source => "/vagrant/files/dhcp_updater",
+}
+
 
 class { 'dhcp':
   dnsdomain    => [
@@ -91,8 +57,8 @@ class { 'dhcp':
   nameservers  => ['172.16.0.2'],
   ntpservers   => ['us.pool.ntp.org'],
   interfaces   => ['eth2'],
-#  dnsupdatekey => "/etc/bind/keys.d/$ddnskeyname",
-#  require      => Bind::Key[ $ddnskeyname ],
+  dnsupdatekey => "/etc/bind/keys.d/dhcp_updater",
+  require      => File["/etc/bind/keys.d/dhcp_updater"],
   pxeserver    => '172.16.0.2',
   pxefilename  => 'pxelinux.0',
 }
@@ -103,4 +69,18 @@ dhcp::pool{ 'local.cloud':
   range   => '172.16.0.16 172.16.0.255',
   gateway => '172.16.0.2',
 }
+
+file { "/etc/apparmor.d/usr.sbin.dhcpd":
+	ensure => present,
+	owner => root,
+	group => root,
+	mode => 644,
+	source => "/vagrant/files/apparmor_usr.sbin.dhcpd",
+}
+
+file_line { 'static_nameserver':
+	path => '/etc/network/interfaces',
+	line => '      dns-nameservers  172.16.0.2 8.8.8.8 8.8.4.4',
+}
+
 
