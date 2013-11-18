@@ -1,3 +1,5 @@
+include "/etc/bind/keys.d/dhcp_updater";
+
 options {
         directory "/var/cache/bind";
 

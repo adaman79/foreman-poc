@@ -1,33 +1,46 @@
-# Necessary for the subsequent installations and further configuration
+# Necessary for the subsequent installations
 exec { 'apt-get update':
 	command => '/usr/bin/apt-get update'
 }
 
 
-# BIND
+# BIND configuration
 
+# install BIND
 package {
     'bind9':
         ensure => installed
 }
 
+# create necessary directories
 file { "/etc/bind":
 	ensure => directory,
 }
 
+# copy configurations from host and set permissions
 file { "/etc/bind/named.conf.options":
 	ensure => present,
 	source => "/vagrant/files/named.conf.options",
+	owner => root,
+	group => bind,
+	mode => 644,
 }
 file { "/etc/bind/named.conf.local":
 	ensure => present,
 	source => "/vagrant/files/named.conf.local",
+	owner => root,
+	group => bind,
+	mode => 644,
 }
 file { "/etc/bind/db.local.cloud":
 	ensure => present,
 	source => "/vagrant/files/db.local.cloud",
+	owner => root,
+	group => bind,
+	mode => 644,
 }
 
+# make sure that BIND gets restarted after the configuration is changed
 service { "bind9":
 	ensure => running,
 	subscribe =>	[
@@ -37,9 +50,10 @@ service { "bind9":
 			],
 }
 
+
 # DHCP
 
-
+# copy key for secure DDNS updates
 file { "/etc/bind/keys.d":
 	ensure => directory,
 }
@@ -48,13 +62,13 @@ file { "/etc/bind/keys.d/dhcp_updater":
 	source => "/vagrant/files/dhcp_updater",
 }
 
-
+# set up puppet-module for DHCP
 class { 'dhcp':
   dnsdomain    => [
     'local.cloud',
  #   'metal.cloud.local',
     ],
-  nameservers  => ['172.16.0.2'],
+  nameservers  => ['172.16.0.2, 8.8.8.8, 8.8.4.4'],
   ntpservers   => ['us.pool.ntp.org'],
   interfaces   => ['eth2'],
   dnsupdatekey => "/etc/bind/keys.d/dhcp_updater",
@@ -63,6 +77,7 @@ class { 'dhcp':
   pxefilename  => 'pxelinux.0',
 }
 
+# domain local.cloud
 dhcp::pool{ 'local.cloud':
   network => '172.16.0.0',
   mask    => '255.255.255.0',
@@ -70,6 +85,8 @@ dhcp::pool{ 'local.cloud':
   gateway => '172.16.0.2',
 }
 
+# workaround that dhcp can read key for secure DNS updates
+# replace existing DHCPd-apparmor configuration
 file { "/etc/apparmor.d/usr.sbin.dhcpd":
 	ensure => present,
 	owner => root,
@@ -78,9 +95,19 @@ file { "/etc/apparmor.d/usr.sbin.dhcpd":
 	source => "/vagrant/files/apparmor_usr.sbin.dhcpd",
 }
 
-file_line { 'static_nameserver':
-	path => '/etc/network/interfaces',
-	line => '      dns-nameservers  172.16.0.2 8.8.8.8 8.8.4.4',
+# symlink necessary for DNS updates
+file { '/var/cache/bind/db.local.cloud':
+   ensure => 'link',
+   target => '/etc/bind/db.local.cloud',
+}
+
+# replace configuration of interfaces to ensure correct dns name server
+file { "/etc/network/interfaces":
+	ensure => present,
+	source => "/vagrant/files/interfaces_dns",
+	owner => root,
+	group => root,
+	mode => 644,
 }
 
 
