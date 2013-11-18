@@ -1,6 +1,0 @@
-zone "local.cloud" {
-        type master;
-        file "/etc/bind/db.local.cloud";
-        allow-update { key "DHCP_UPDATER"; };
-	journal "/var/cache/bind/db.local.cloud.jnl";
-};

@@ -20,21 +20,21 @@ file { "/etc/bind":
 # copy configurations from host and set permissions
 file { "/etc/bind/named.conf.options":
 	ensure => present,
-	source => "/vagrant/files/named.conf.options",
+	source => "/vagrant/files/DHCP/named.conf.options",
 	owner => root,
 	group => bind,
 	mode => 644,
 }
 file { "/etc/bind/named.conf.local":
 	ensure => present,
-	source => "/vagrant/files/named.conf.local",
+	source => "/vagrant/files/DHCP/named.conf.local",
 	owner => root,
 	group => bind,
 	mode => 644,
 }
 file { "/etc/bind/db.local.cloud":
 	ensure => present,
-	source => "/vagrant/files/db.local.cloud",
+	source => "/vagrant/files/DHCP/db.local.cloud",
 	owner => root,
 	group => bind,
 	mode => 644,
@@ -59,7 +59,7 @@ file { "/etc/bind/keys.d":
 }
 file { "/etc/bind/keys.d/dhcp_updater":
 	ensure => present,
-	source => "/vagrant/files/dhcp_updater",
+	source => "/vagrant/files/DHCP/dhcp_updater",
 }
 
 # set up puppet-module for DHCP
@@ -74,7 +74,7 @@ class { 'dhcp':
   dnsupdatekey => "/etc/bind/keys.d/dhcp_updater",
   require      => File["/etc/bind/keys.d/dhcp_updater"],
   pxeserver    => '172.16.0.2',
-  pxefilename  => 'pxelinux.0',
+  pxefilename  => 'ubuntu-12.04/pxelinux.0',
 }
 
 # domain local.cloud
@@ -92,7 +92,7 @@ file { "/etc/apparmor.d/usr.sbin.dhcpd":
 	owner => root,
 	group => root,
 	mode => 644,
-	source => "/vagrant/files/apparmor_usr.sbin.dhcpd",
+	source => "/vagrant/files/DHCP/apparmor_usr.sbin.dhcpd",
 }
 
 # symlink necessary for DNS updates
@@ -104,10 +104,91 @@ file { '/var/cache/bind/db.local.cloud':
 # replace configuration of interfaces to ensure correct dns name server
 file { "/etc/network/interfaces":
 	ensure => present,
-	source => "/vagrant/files/interfaces_dns",
+	source => "/vagrant/files/DHCP/interfaces_dns",
 	owner => root,
 	group => root,
 	mode => 644,
 }
 
+# PXE
 
+# PXE is composed of a DHCP and a TFTP server
+
+# DHCP:	offers an IP
+#   (already configured further up)
+
+
+# TFTP:	supplies the images
+
+# installation of the TFTP-server
+package {
+    'tftpd-hpa':
+        ensure => installed
+}
+
+# replace the TFTPd-configuration
+file { '/etc/default/tftpd-hpa':
+	ensure => present,
+	source => '/vagrant/files/TFTP/tftpd-hpa',
+	owner => root,
+	group => root,
+	mode => 644,
+}
+
+# create the TFTP-root directory and set the permissions
+file { '/var/lib/tftpboot':
+	ensure => directory,
+	owner => nobody,
+	group => nogroup,
+	mode => 777,
+}
+
+# netboot image for Ubunu 12.04
+file { '/var/lib/tftpboot/ubuntu-12.04':
+	ensure => directory,
+	recurse => true,
+	purge => true,
+	force => true,
+	owner => nobody,
+	group => nogroup,
+	mode => 777,
+	source => "/vagrant/files/TFTP/ubuntu-12.04",
+}
+
+
+
+# default configuration if no match is found
+
+# config-folder
+file { '/var/lib/tftpboot/pxelinux.cfg':
+	ensure => directory,
+	owner => nobody,
+	group => nogroup,
+	mode => 777,
+}
+
+# config: list of available boot image
+file { '/var/lib/tftpboot/pxelinux.cfg/default':
+	ensure => present,
+	owner => nobody,
+	group => nogroup,
+	mode => 777,
+	source => "/vagrant/files/TFTP/default",
+}
+
+# boot menu text
+file { '/var/lib/tftpboot/boot.txt':
+	ensure => present,
+	owner => nobody,
+	group => nogroup,
+	mode => 777,
+	source => "/vagrant/files/TFTP/boot.txt",
+}
+
+
+
+# make sure that TFTP gets restarted after the configuration is changed
+service { "tftpd-hpa":
+	ensure => running,
+	subscribe => File["/etc/default/tftpd-hpa"],
+}
