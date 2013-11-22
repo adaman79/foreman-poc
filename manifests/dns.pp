@@ -192,3 +192,35 @@ service { "tftpd-hpa":
 	ensure => running,
 	subscribe => File["/etc/default/tftpd-hpa"],
 }
+
+
+
+# FOREMAN
+
+# set up module
+class { 'apt': 
+	always_apt_update	=> true,
+}
+
+# add repository
+
+# AN FELIX:
+# habe noch nicht ganz herausgefunden, welche Parameter gleiche Einträge wie in http://theforeman.org/manuals/1.3/quickstart_guide.html erzeugen
+apt::source { 'foreman':
+  location	=> 'http://deb.theforeman.org/',
+  release	=> 'precise',
+  key_source	=> 'http://deb.theforeman.org/foreman.asc',
+}
+
+
+# install foreman-installer
+package {
+    'foreman-installer':
+        ensure => installed,
+}
+
+exec { "foreman-installer":
+    command => "foreman-installer",
+    path    => "/usr/local/bin/:/bin/",
+}
+
