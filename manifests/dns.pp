@@ -196,31 +196,80 @@ service { "tftpd-hpa":
 
 
 # FOREMAN
+define aptkey($ensure, $apt_key_url = 'http://deb.theforeman.org') {
+  case $ensure {
+    'present': {
+      exec { "apt-key present $name":
+        command => "/usr/bin/wget -q $apt_key_url/$name -O -|/usr/bin/apt-key add -",
+        unless  => "/usr/bin/apt-key list|/bin/grep -c $name",
+      }
+    }
+    'absent': {
+      exec { "apt-key absent $name":
+        command => "/usr/bin/apt-key del $name",
+        onlyif  => "/usr/bin/apt-key list|/bin/grep -c $name",
+      }
+    }
+    default: {
+      fail "Invalid 'ensure' value '$ensure' for apt::key"
+    }
+  }
+}
+
+
+file {'foremanlist':
+path	=> '/etc/apt/sources.list.d/foreman.list',
+ensure	=> present,
+mode => 0644,
+content => 'deb http://deb.theforeman.org/ precise 1.3'
+}
+
+aptkey { 'foreman.asc':
+ensure	=> present
+}
+
+exec { "apt-update":
+    command => "/usr/bin/apt-get update",
+require	=> Aptkey['foreman.asc']
+}
+
+package { "foreman-installer":
+ensure	=> "installed",
+require  => Exec['apt-update']
+}
+
+/*
+exec { 'foreman-installer':
+command => "/usr/bin/foreman-installer",
+require => Package["foreman-installer"]
+}
+*/
+
 
 # set up module
-class { 'apt': 
-	always_apt_update	=> true,
-}
+#class { 'apt': 
+#	always_apt_update	=> true,
+#}
 
 # add repository
 
 # AN FELIX:
 # habe noch nicht ganz herausgefunden, welche Parameter gleiche Einträge wie in http://theforeman.org/manuals/1.3/quickstart_guide.html erzeugen
-apt::source { 'foreman':
-  location	=> 'http://deb.theforeman.org/',
-  release	=> 'precise',
-  key_source	=> 'http://deb.theforeman.org/foreman.asc',
-}
+#apt::source { 'foreman':
+#  location	=> 'http://deb.theforeman.org/',
+#  release	=> 'precise',
+#  key_source	=> 'http://deb.theforeman.org/foreman.asc',
+#}
 
 
 # install foreman-installer
-package {
-    'foreman-installer':
-        ensure => installed,
-}
+#package {
+#    'foreman-installer':
+#        ensure => installed,
+#}
 
-exec { "foreman-installer":
-    command => "foreman-installer",
-    path    => "/usr/local/bin/:/bin/",
-}
+#exec { "foreman-installer":
+#    command => "foreman-installer",
+#    path    => "/usr/local/bin/:/bin/",
+#}
 
